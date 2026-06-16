@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Herramienta Base64 + QR</title>
+
+<!-- Librería QR -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+<style>
+  body {
+    font-family: "Segoe UI", Arial;
+    background: linear-gradient(135deg,#4facfe,#00f2fe);
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+
+  h1 {
+    text-align: center;
+    color: white;
+  }
+
+  .container {
+    max-width: 1000px;
+    margin: auto;
+    display: grid;
+    gap: 20px;
+  }
+
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+  }
+
+  h2 {
+    margin-top: 0;
+    color: #4facfe;
+  }
+
+  textarea {
+    width: 100%;
+    height: 180px;
+    font-family: Consolas;
+    font-size: 12px;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    resize: none;
+  }
+
+  input[type="file"],
+  input[type="text"] {
+    width: 100%;
+    margin: 10px 0;
+    padding: 8px;
+  }
+
+  button {
+    padding: 10px 15px;
+    background: #4facfe;
+    border: none;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+
+  button:hover {
+    background: #007bff;
+  }
+
+  img {
+    max-width: 100%;
+    margin-top: 10px;
+    border-radius: 8px;
+  }
+
+  canvas {
+    margin-top: 10px;
+  }
+  #dropZone.dragover {
+  background: #e6f3ff;
+  border-color: #007bff;
+  }
+</style>
+</head>
+
+<body>
+
+<h1>🔧 Herramientas Web: Base64 + QR</h1>
+
+<div class="container">
+  
+  <!-- QR -->
+  <div class="card">
+    <h2>📱 Generador de Código QR</h2>
+
+    <input type="text" id="qrText" 
+      value="https://pokeapp-1.vercel.app/">
+
+    <button onclick="generarQR()">Generar QR</button>
+    <button onclick="descargarQR()">Descargar QR</button>
+
+    <br>
+    <canvas id="qrCanvas"></canvas>
+  </div>
+
+  <!-- BASE64 -->
+  <div class="card">
+    <h2>🌐 Convertir Imagen a Base64</h2>
+
+    <div id="dropZone" style="
+      border: 2px dashed #4facfe;
+      padding: 20px;
+      text-align: center;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    ">
+      📂 Arrastra una imagen aquí o haz clic para seleccionar
+      <input type="file" id="fileInput" accept="image/*" hidden>
+    </div>
+
+    <textarea id="output" placeholder="Aquí aparecerá el código Base64..."></textarea>
+
+    <button onclick="copiar()">Copiar código</button>
+
+    <img id="preview" style="display:none">
+  </div>
+
+</div>
+
+<script>
+/* ---------------- BASE64 ---------------- */
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const output = document.getElementById('output');
+const preview = document.getElementById('preview');
+
+/* CLICK -> abrir explorador */
+dropZone.addEventListener('click', () => fileInput.click());
+
+/* SELECCIÓN NORMAL */
+fileInput.addEventListener('change', () => {
+  manejarArchivo(fileInput.files[0]);
+});
+
+/* ARRASTRAR */
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave', () => {
+  dropZone.classList.remove('dragover');
+});
+
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+
+  const file = e.dataTransfer.files[0];
+  manejarArchivo(file);
+});
+
+/* FUNCIÓN CENTRAL */
+function manejarArchivo(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    alert('⚠️ Solo se permiten imágenes');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64 = e.target.result;
+    output.value = base64;
+    preview.src = base64;
+    preview.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function copiar() {
+  output.select();
+  document.execCommand('copy');
+  alert('✅ Código Base64 copiado');
+}
+
+/* ---------------- QR ---------------- */
+function generarQR() {
+  const texto = document.getElementById('qrText').value;
+  const canvas = document.getElementById('qrCanvas');
+
+  QRCode.toCanvas(canvas, texto, {
+    width: 300,
+    margin: 2,
+    errorCorrectionLevel: 'M',
+    color: {
+      dark: '#000000',
+      light: '#ffffff'
+    }
+  }, function (error) {
+    if (error) console.error(error);
+  });
+}
+
+function descargarQR() {
+  const canvas = document.getElementById("qrCanvas");
+  const enlace = document.createElement('a');
+  enlace.download = "qr.png";
+  enlace.href = canvas.toDataURL();
+  enlace.click();
+}
+</script>
+
+</body>
+</html>
