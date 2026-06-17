@@ -81,7 +81,13 @@
 
   canvas {
     margin-top: 10px;
+    cursor: grab;
   }
+  
+  canvas:active {
+    cursor: grabbing;
+  }
+
   #dropZone.dragover {
   background: #e6f3ff;
   border-color: #007bff;
@@ -106,7 +112,7 @@
     <button onclick="descargarQR()">Descargar QR</button>
 
     <br>
-    <canvas id="qrCanvas"></canvas>
+    <canvas id="qrCanvas" draggable="true"></canvas>
   </div>
 
   <!-- BASE64 -->
@@ -124,12 +130,28 @@
       📂 Arrastra una imagen aquí o haz clic para seleccionar
       <input type="file" id="fileInput" accept="image/*" hidden>
     </div>
+    <p id="infoArchivo" style="font-size:12px;color:#666;"></p>
 
     <textarea id="output" placeholder="Aquí aparecerá el código Base64..."></textarea>
 
     <button onclick="copiar()">Copiar código</button>
+    <button onclick="limpiar()">Limpiar</button>
 
     <img id="preview" style="display:none">
+  </div>
+
+  <div class="card">
+    <h2>🔄 QR Dinámico</h2>
+
+    <input type="text" id="dynamicID" placeholder="ID (ej: sala1)">
+    <input type="text" id="dynamicURL" placeholder="URL destino">
+
+    <button onclick="guardarEnServidor()">Guardar / Actualizar</button>
+    <button onclick="generarQRDinamico()">Generar QR</button>
+    <button onclick="descargarQRDinamico()">Descargar QR</button>
+    <button onclick="cargarURL()">Cargar URL existente</button>
+    <canvas id="qrCanvasDinamico"></canvas>
+    <p id="qrInfo"></p>
   </div>
 
 </div>
@@ -140,6 +162,13 @@ const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
 const output = document.getElementById('output');
 const preview = document.getElementById('preview');
+const qrCanvas = document.getElementById("qrCanvas");
+
+/* Cuando empiezas a arrastrar el QR */
+qrCanvas.addEventListener("dragstart", (e) => {
+  const dataURL = qrCanvas.toDataURL("image/png");
+  e.dataTransfer.setData("text/plain", dataURL);
+});
 
 /* CLICK -> abrir explorador */
 dropZone.addEventListener('click', () => fileInput.click());
@@ -163,8 +192,20 @@ dropZone.addEventListener('drop', (e) => {
   e.preventDefault();
   dropZone.classList.remove('dragover');
 
-  const file = e.dataTransfer.files[0];
-  manejarArchivo(file);
+  /* Caso 1: archivo desde el PC */
+  if (e.dataTransfer.files.length > 0) {
+    manejarArchivo(e.dataTransfer.files[0]);
+    return;
+  }
+
+  /* Caso 2: imagen arrastrada desde el QR */
+  const dataURL = e.dataTransfer.getData("text/plain");
+
+  if (dataURL && dataURL.startsWith("data:image")) {
+    output.value = dataURL;
+    preview.src = dataURL;
+    preview.style.display = 'block';
+  }
 });
 
 /* FUNCIÓN CENTRAL */
@@ -180,14 +221,23 @@ function manejarArchivo(file) {
     output.value = base64;
     preview.src = base64;
     preview.style.display = 'block';
+    document.getElementById("infoArchivo").innerText =
+    `Tamaño: ${(file.size / 1024).toFixed(2)} KB`;
   };
   reader.readAsDataURL(file);
 }
 
 function copiar() {
-  output.select();
-  document.execCommand('copy');
-  alert('✅ Código Base64 copiado');
+  navigator.clipboard.writeText(output.value)
+    .then(() => alert('✅ Código Base64 copiado'))
+    .catch(() => alert('❌ Error al copiar'));
+}
+
+function limpiar() {
+  output.value = "";
+  preview.src = "";
+  preview.style.display = "none";
+  fileInput.value = "";
 }
 
 /* ---------------- QR ---------------- */
@@ -215,6 +265,79 @@ function descargarQR() {
   enlace.href = canvas.toDataURL();
   enlace.click();
 }
+
+/* ---------------- QR dinámico ---------------- */
+function guardarEnServidor() {
+  const id = dynamicID.value;
+  const url = dynamicURL.value;
+
+  if (!id || !url) {
+    alert("⚠️ Completa todos los campos");
+    return;
+  }
+
+  fetch("guardar.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: `id=${id}&url=${encodeURIComponent(url)}`
+  })
+  .then(res => res.text())
+    .then(resp => {
+      console.log(resp);
+      alert("✅ Guardado correctamente");
+    })
+    .catch(err => {
+      console.error(err);
+      alert("❌ Error al guardar");
+    });
+}
+
+function generarQRDinamico() {
+  const id = dynamicID.value;
+
+  if (!id) {
+    alert("⚠️ Ingresa un ID");
+    return;
+  }
+
+  const url = `https://pokeapp-1.vercel.app//QRs/qr.php?id=${id}`;
+
+  QRCode.toCanvas(qrCanvasDinamico, url);
+
+  document.getElementById("qrInfo").innerText =
+    "QR apunta a: " + url;
+}
+
+function descargarQRDinamico() {
+  const canvas = document.getElementById("qrCanvasDinamico");
+
+  const link = document.createElement("a");
+  link.download = "qr_dinamico.png";
+  link.href = canvas.toDataURL();
+
+  link.click();
+}
+/* ---------------- Cargar direcciones ---------------- */
+function cargarURL() {
+  const id = dynamicID.value;
+
+  fetch(`obtener.php?id=${id}`)
+    .then(res => res.text())
+    .then(url => {
+      if (url) {
+        dynamicURL.value = url;
+      } else {
+        alert("⚠️ ID no existe");
+      }
+    });
+}
+
+/* ---------------- redirección ---------------- */
+const params = new URLSearchParams(window.location.search);
+const id = params.get("id");
+
 </script>
 
 </body>
