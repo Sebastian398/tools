@@ -1,14 +1,22 @@
 <?php
 $archivo = "datos.json";
+
+if (!file_exists($archivo)) {
+    echo json_encode([]);
+    exit;
+}
+
 $data = json_decode(file_get_contents($archivo), true);
 
-$id = $_POST['id'];
+$resultado = [];
 
-$data = array_filter($data, function($item) use ($id) {
-    return $item['id'] !== $id;
-});
+foreach ($data as $id => $url) {
+    $resultado[] = [
+        "id" => $id,
+        "url" => $url
+    ];
+}
 
-file_put_contents($archivo, json_encode(array_values($data)));
-
-echo "ok";
+header('Content-Type: application/json');
+echo json_encode($resultado);
 ?>
