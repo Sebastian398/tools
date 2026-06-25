@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Herramienta Base64 + QR</title>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<style>
+body {
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  background: #0f172a;
+  color: #fff;
+}
+
+/* LAYOUT */
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 220px;
+  background: #020617;
+  padding: 20px;
+  border-right: 1px solid #1e293b;
+}
+
+.sidebar h2 {
+  margin-bottom: 20px;
+}
+
+.sidebar button {
+  width: 100%;
+  margin-bottom: 10px;
+  background: transparent;
+  border: 1px solid #334155;
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.sidebar button:hover {
+  background: #1e293b;
+}
+
+/* MAIN */
+.main {
+  flex: 1;
+  padding: 20px;
+}
+
+.header {
+  display: none;
+  background: #020617;
+  padding: 10px;
+  border-bottom: 1px solid #334155;
+}
+
+/* CARD */
+.card {
+  background: #020617;
+  border: 1px solid #1e293b;
+  border-radius: 16px;
+  padding: 22px;
+  margin-bottom: 20px;
+}
+
+.hidden {
+  display: none;
+}
+
+/* INPUTS */
+input, textarea {
+  width: 100%;
+  margin-top: 8px;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #020617;
+  color: white;
+  box-sizing: border-box;
+}
+
+textarea {
+  height: 140px;
+}
+
+/* BOTONES */
+.btn {
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  border: 1px solid transparent;
+  background: #1e293b;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2563eb;
+}
+
+.btn-success {
+  background: #10b981;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #059669;
+}
+
+.btn-purple {
+  background: #8b5cf6;
+  color: white;
+}
+
+.btn-purple:hover {
+  background: #7c3aed;
+}
+
+.btn-warning { background: #f59e0b; }
+.btn-danger  { background: #dc2626; }
+.btn-dark    { background: #334155; }
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 15px rgba(255, 255, 255, 0.4);
+}
+
+
+.btn-icon {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 8px;
+  background: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #334155;
+}
+
+.btn-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* variantes */
+.btn-edit {
+  color: #fbbf24;
+}
+
+.btn-delete {
+  color: #ef4444;
+}
+
+.btn-qr {
+  color: #60a5fa;
+}
+
+/* hover iconos */
+.btn-icon:hover {
+  background: #334155;
+  transform: scale(1.05);
+}
+
+/* Grupo */
+
+.btn-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* DROPZONE */
+#dropZone {
+  border: 2px dashed #3b82f6;
+  padding: 30px;
+  text-align: center;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+/* SALAS */
+.sala {
+  background: #020617;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.sala a {
+  color: #3b82f6;
+}
+
+/* MENSAJE */
+#mensaje {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  display: none;
+}
+
+.ok { background: #16a34a; }
+.error { background: #dc2626; }
+
+/* TABLA */
+.table-container {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 500px;
+  margin-top: 10px;
+}
+
+th {
+  text-align: left;
+  padding: 12px 10px;
+  font-size: 13px;
+  color: #94a3b8;
+  border-bottom: 1px solid #334155;
+}
+
+/* Celdas */
+td {
+  padding: 12px 10px;
+  vertical-align: middle;
+  border-bottom: 1px solid #1e293b;
+}
+
+td, th {
+  padding: 8px;
+  border-bottom: 1px solid #334155;
+  font-size: 13px;
+}
+
+a { color: #3b82f6; }
+
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+}
+</style>
+</head>
+
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <h2>QR Tools</h2>
+      <button onclick="mostrarSeccion('qr')">QR</button>
+      <button onclick="mostrarSeccion('base64')">Base64</button>
+      <button onclick="mostrarSeccion('dinamico')">QR Dinámico</button>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      
+      <!-- QR -->
+      <section id="qr" class="card">
+        <h2>Generador QR</h2>
+        <input id="qrText" placeholder="Texto o URL">
+        <button class="btn btn-primary" onclick="generarQR()">Generar</button>
+        <button class="btn btn-purple" onclick="descargarQR()">Descargar</button>
+        <canvas id="qrCanvas" draggable="true"></canvas>
+      </section>
+
+      <!-- BASE64 -->
+      <section id="base64" class="card hidden">
+        <h2>Imagen a Base64</h2>
+
+        <div id="dropZone">📂 Arrastra una imagen aquí o haz clic para seleccionar</div>
+        <input type="file" id="fileInput" hidden>
+
+        <textarea id="output"></textarea>
+        <button class="btn btn-primary" onclick="copiar()">Copiar</button>
+        <button class="btn btn-success" onclick="limpiar()">Limpiar</button>
+
+        <img id="preview" style="max-width:100%;margin-top:10px;"/>
+      </section>
+
+      <!-- QR DINÁMICO + SALAS -->
+      <section id="dinamico" class="hidden">
+
+        <!-- GENERADOR -->
+        <div class="card">
+          <h2>QR Dinámico</h2>
+
+          <input type="text" id="dynamicID" placeholder="ID sala">
+          <input type="text" id="dynamicURL" placeholder="URL destino">
+
+          <div class="btn-group">
+            <button class="btn btn-success" onclick="guardarEnServidor()">Guardar / Actualizar</button>
+            <button class="btn btn-primary" onclick="generarQRDinamico()">Generar QR</button>
+            <button class="btn btn-purple" onclick="descargarQRDinamico()">Descargar</button>
+            <button class="btn btn-purple" onclick="cargarURL()">Cargar URL existente</button>
+          </div>
+          <div id="mensaje"></div><br><br>
+
+          <canvas id="qrCanvasDinamico"></canvas>
+          <p id="qrInfo"></p>
+        </div>
+        <!-- SALAS -->
+        <div class="card">
+          <h2>Salas creadas</h2>
+
+          <button class="btn btn-primary" onclick="cargarSalas()">Actualizar</button>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>URL</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaSalas"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+<script>
+/* FLAGS */
+let qrGenerado = false;
+let qrDinamicoGenerado = false;
+
+/* ---------- NAVEGACIÓN ---------- */
+function mostrarSeccion(id) {
+  document.querySelectorAll("section").forEach(s => s.classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
+}
+
+function mostrarMensaje(texto, tipo="ok") {
+  const m = document.getElementById("mensaje");
+  m.className = tipo;
+  m.innerText = texto;
+  m.style.display = "block";
+  setTimeout(() => m.style.display="none", 2500);
+}
+/* ---------------- BASE64 ---------------- */
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const output = document.getElementById('output');
+const preview = document.getElementById('preview');
+const qrCanvas = document.getElementById("qrCanvas");
+
+/* Cuando empiezas a arrastrar el QR */
+qrCanvas.addEventListener("dragstart", (e) => {
+  const dataURL = qrCanvas.toDataURL("image/png");
+  e.dataTransfer.setData("text/plain", dataURL);
+});
+
+/* CLICK -> abrir explorador */
+dropZone.addEventListener('click', () => fileInput.click());
+
+/* SELECCIÓN NORMAL */
+fileInput.addEventListener('change', () => {
+  manejarArchivo(fileInput.files[0]);
+});
+
+/* ARRASTRAR */
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave', () => {
+  dropZone.classList.remove('dragover');
+});
+
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+
+  /* Archivo desde el PC */
+  if (e.dataTransfer.files.length > 0) {
+    manejarArchivo(e.dataTransfer.files[0]);
+    return;
+  }
+});
+
+/* FUNCIÓN CENTRAL */
+function manejarArchivo(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    alert('⚠️ Solo se permiten imágenes');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    output.value = e.target.result;
+    preview.src = e.target.result;
+    preview.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function copiar() {
+  if (!output.value) {
+    alert("No hay código para copiar");
+    return;
+  }
+  navigator.clipboard.writeText(output.value);
+}
+
+function limpiar() {
+  output.value = "";
+  preview.src = "";
+  preview.style.display = "none";
+  fileInput.value = "";
+}
+
+/* ---------------- QR ---------------- */
+function generarQR() {
+  const texto = document.getElementById('qrText').value;
+  const canvas = document.getElementById('qrCanvas');
+  
+  if (!texto) {
+    alert("Ingresa texto o URL");
+    return;
+  }
+  
+  QRCode.toCanvas(qrCanvas, texto, () => {
+    qrGenerado = true;
+  });
+}
+
+function descargarQR() {
+  if (!qrGenerado) {
+    alert("Primero genera el QR");
+    return;
+  }
+  
+  const link = document.createElement("a");
+  link.href = qrCanvas.toDataURL();
+  link.download = "qr.png";
+  link.click();
+}
+
+/* ---------------- QR dinámico ---------------- */
+function guardarEnServidor() {
+  const id = dynamicID.value;
+  const url = dynamicURL.value;
+
+  if (!id || !url) {
+    alert("Completa todos los campos");
+    return;
+  }
+
+  fetch("guardar.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: `id=${id}&url=${encodeURIComponent(url)}`
+  })
+  .then(res => res.text())
+    .then(resp => {
+      console.log(resp);
+      alert("✅ Guardado correctamente");
+      cargarSalas(); 
+    })
+    .catch(err => {
+      console.error(err);
+      alert("❌ Error al guardar");
+    });
+}
+
+function generarQRDinamico() {
+  const id = dynamicID.value;
+
+  if (!id) {
+    alert("Ingresa un ID");
+    return;
+  }
+
+  const url = `http://asistencia.cargodepot.com.co/QRs/qr.php?id=${id}`;
+
+  QRCode.toCanvas(qrCanvasDinamico, url, () => {
+    qrDinamicoGenerado = true;
+  });
+
+  qrInfo.innerText = "QR apunta a: " + url;
+}
+
+function descargarQRDinamico() {
+  if (!qrDinamicoGenerado) {
+    alert("Primero genera el QR");
+    return;
+  }
+  const canvas = document.getElementById("qrCanvasDinamico");
+
+  const link = document.createElement("a");
+  link.download = "qr_dinamico.png";
+  link.href = canvas.toDataURL();
+  link.click();
+}
+
+/* ---------- LISTAR SALAS ---------- */
+function cargarSalas() {
+  fetch("listar.php")
+    .then(res => res.json())
+    .then(data => {
+
+      tablaSalas.innerHTML = "";
+
+      if (!data || data.length === 0) {
+        tablaSalas.innerHTML = `<tr><td colspan="4">No hay salas</td></tr>`;
+        return;
+      }
+
+      data.forEach(s => {
+
+        const urlQR = `http://asistencia.cargodepot.com.co/QRs/qr.php?id=${s.id}`;
+
+        
+        tablaSalas.innerHTML += `
+        <tr>
+          <td>${s.id}</td>
+          <td>
+            <a href="${s.url}" target="_blank">${s.url}</a>
+          </td>
+          <td>
+            <div class="btn-group">
+
+              <!-- EDITAR -->
+              <button class="btn btn-icon btn-edit"
+                onclick="editarSala('${s.id}','${encodeURIComponent(s.url)}')">
+                <i data-lucide="edit"></i>
+              </button>
+
+              <!-- ELIMINAR -->
+              <button class="btn btn-icon btn-delete"
+                onclick="eliminarSala('${s.id}')">
+                <i data-lucide="trash-2"></i>
+              </button>
+
+              <!-- QR -->
+              <button class="btn btn-icon btn-qr"
+                onclick="generarQRDesdeLista('${s.id}')">
+                <i data-lucide="qr-code"></i>
+              </button>
+
+            </div>
+          </td>
+        </tr>
+        `;
+      });
+      lucide.createIcons();
+    })
+    .catch(err => {
+      console.error(err);
+      alert("❌ Error cargando salas");
+    });
+}
+/* ---------- EDITAR ---------- */
+function editarSala(id, url) {
+  mostrarSeccion("dinamico");
+
+  document.getElementById("dynamicID").value = id;
+  document.getElementById("dynamicURL").value = decodeURIComponent(url);
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* ---------- ELIMINAR ---------- */
+function eliminarSala(id) {
+
+  if (!confirm("¿Eliminar sala?")) return;
+
+  fetch("eliminar.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: `id=${id}`
+  })
+  .then(res => res.text())
+  .then(() => {
+    alert("✅ Eliminado");
+    cargarSalas();
+  })
+  .catch(() => alert("❌ Error al eliminar"));
+}
+
+/* ---------- GENERAR DESDE LISTA ---------- */
+function generarQRDesdeLista(id) {
+  mostrarSeccion("dinamico");
+
+  const urlQR = `http://asistencia.cargodepot.com.co/QRs/qr.php?id=${id}`;
+
+  QRCode.toCanvas(qrCanvasDinamico, urlQR, () => {
+    qrDinamicoGenerado = true;
+  });
+
+  qrInfo.innerText = "QR desde sala: " + urlQR;
+}
+
+/* ---------------- Cargar direcciones ---------------- */
+function cargarURL() {
+  const id = dynamicID.value;
+
+  fetch(`obtener.php?id=${id}`)
+    .then(res => res.text())
+    .then(url => {
+      if (url) {
+        dynamicURL.value = url;
+      } else {
+        alert("ID no existe");
+      }
+    });
+}
+
+/* ---------------- redirección ---------------- */
+const params = new URLSearchParams(window.location.search);
+const id = params.get("id");
+
+/* ---------- INIT ---------- */
+cargarSalas();
+</script>
+
+</body>
+</html>
